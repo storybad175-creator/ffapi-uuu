@@ -31,14 +31,19 @@ class JWTManager:
             "token": settings.GARENA_GUEST_TOKEN,
             "login_type": "guest"
         }
+        headers = {
+            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 12; Pixel 6 Build/SD1A.210817.036)",
+            "Content-Type": "application/json"
+        }
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload, timeout=10) as response:
+                async with session.post(url, json=payload, headers=headers, timeout=10) as response:
                     if response.status != 200:
+                        error_text = await response.text()
                         raise FFError(
                             ErrorCode.AUTH_FAILED,
-                            "Failed to authenticate with Garena MajorLogin"
+                            f"Failed to authenticate with Garena MajorLogin: HTTP {response.status} - {error_text}"
                         )
 
                     data = await response.json()

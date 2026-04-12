@@ -8,6 +8,8 @@ from ff_api.core.fetcher import fetch_player
 from ff_api.config.regions import REGION_MAP
 from ff_api.api.errors import FFError
 
+from ff_api.core.transport import transport
+
 async def run_fetch(uid: str, region: str, compact: bool = False):
     try:
         response = await fetch_player(uid, region)
@@ -22,10 +24,10 @@ async def run_fetch(uid: str, region: str, compact: bool = False):
             }
         }
         print(json.dumps(error_res, indent=2), file=sys.stderr)
-        sys.exit(1)
     except Exception as e:
         print(json.dumps({"error": str(e)}, indent=2), file=sys.stderr)
-        sys.exit(1)
+    finally:
+        await transport.close()
 
 async def run_batch(file_path: str, region: str):
     try:
@@ -42,7 +44,8 @@ async def run_batch(file_path: str, region: str):
                 print(json.dumps(res.model_dump(by_alias=True)))
     except Exception as e:
         print(f"Batch Error: {str(e)}", file=sys.stderr)
-        sys.exit(1)
+    finally:
+        await transport.close()
 
 def main():
     parser = argparse.ArgumentParser(description="Free Fire API CLI")
