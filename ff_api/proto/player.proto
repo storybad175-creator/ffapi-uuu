@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package freefire;
+
+message StatLine {
+    int32 matches = 1;
+    int32 wins = 2;
+    int32 kills = 3;
+    int32 deaths = 4;
+    int32 headshots = 5;
+    float avg_damage = 6;
+}
+
+message BRStats {
+    StatLine solo = 1;
+    StatLine duo = 2;
+    StatLine squad = 3;
+}
+
+message CSStats {
+    message Ranked {
+        int32 matches = 1;
+        int32 wins = 2;
+        int32 kills = 3;
+        int32 deaths = 4;
+    }
+    Ranked ranked = 1;
+}
+
+message GuildLeader {
+    string uid = 1;
+    string nickname = 2;
+    int32 level = 3;
+    int32 rank_code = 4;
+}
+
+message GuildInfo {
+    string id = 1;
+    string name = 2;
+    int32 level = 3;
+    int32 member_count = 4;
+    int32 capacity = 5;
+    GuildLeader leader = 6;
+}
+
+message AccountInfo {
+    string uid = 1;
+    string nickname = 2;
+    int32 level = 3;
+    int64 exp = 4;
+    string region = 5;
+    int32 season_id = 6;
+    string preferred_mode = 7;
+    string language = 8;
+    string signature = 9;
+    int32 honor_score = 10;
+    int32 total_likes = 11;
+    string ob_version = 12;
+    int64 created_at_epoch = 13;
+    int64 last_login_epoch = 14;
+    string account_type = 15;
+}
+
+message RankInfo {
+    message BRRank {
+        int32 rank_code = 1;
+        int32 points = 2;
+        int32 max_rank_code = 3;
+        bool visible = 4;
+    }
+    message CSRank {
+        int32 rank_code = 1;
+        int32 points = 2;
+        bool visible = 3;
+    }
+    BRRank br_rank = 1;
+    CSRank cs_rank = 2;
+}
+
+message PlayerResponse {
+    AccountInfo account_info = 1;
+    RankInfo rank_info = 2;
+    BRStats br_stats = 3;
+    CSStats cs_stats = 4;
+    GuildInfo guild_info = 5;
+    // ... more fields can be added
+}
