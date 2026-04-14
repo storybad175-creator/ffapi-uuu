@@ -31,7 +31,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             now = time.time()
             dead_ips = []
             for ip, visits in self._visits.items():
-                # If the latest visit is older than 60s, the entire IP entry can be removed
                 if not visits or visits[-1] < now - 60:
                     dead_ips.append(ip)
             for ip in dead_ips:
@@ -42,7 +41,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         now = time.time()
 
         visits = self._visits.get(client_ip, [])
-        # Prune old visits for this specific IP
         visits = [v for v in visits if v > now - 60]
 
         if len(visits) >= self.rpm:

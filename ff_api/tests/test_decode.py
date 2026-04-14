@@ -22,9 +22,6 @@ def test_rank_translation():
 
 def test_nested_proto_decode(mock_settings):
     # Test Strategy B recursion
-    # We'll manually construct a small nested protobuf binary
-    # Account info (tag 1) -> uid (tag 1), nickname (tag 2)
-
     def encode_varint(v):
         res = bytearray()
         while v >= 0x80:

@@ -16,7 +16,7 @@ from ff_api.core.decoder import decoder
 async def fetch_player(uid: str, region: str) -> PlayerResponse:
     start_time = time.monotonic()
 
-    # 1. Validate Input (Implicitly handled if called from FastAPI, but good for CLI/Direct)
+    # 1. Validate Input
     try:
         req = PlayerRequest(uid=uid, region=region)
         uid = req.uid
@@ -43,7 +43,7 @@ async def fetch_player(uid: str, region: str) -> PlayerResponse:
     # Use a per-key lock to prevent cache stampede
     key_lock = await cache.get_lock(uid, region)
     async with key_lock:
-        # Check again in case another task filled the cache while we waited for the lock
+        # Check again in case another task filled the cache
         cached_data = await cache.get(uid, region)
         if cached_data:
             return PlayerResponse(

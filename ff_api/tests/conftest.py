@@ -7,10 +7,6 @@ from ff_api.api.schemas import PlayerData
 @pytest.fixture
 def mock_settings():
     with patch("ff_api.config.settings.settings") as mocked:
-        mocked.GARENA_GUEST_UID = "test_uid"
-        mocked.GARENA_GUEST_TOKEN = "test_token"
-        mocked.AES_KEY = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
-        mocked.AES_IV = "00112233445566778899aabbccddeeff"
         mocked.CACHE_TTL_SECONDS = 300
         mocked.CACHE_MAX_ENTRIES = 10
         mocked.OB_VERSION = "OB53"

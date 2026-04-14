@@ -2,14 +2,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 class Settings(BaseSettings):
-    # Garena Credentials
-    GARENA_GUEST_UID: str = "guest_uid"
-    GARENA_GUEST_TOKEN: str = "guest_token"
-
-    # AES Constants
-    AES_KEY: str = "your_32_byte_hex_key_here"
-    AES_IV: str = "your_16_byte_hex_iv_here"
-
     # Cache Settings
     CACHE_TTL_SECONDS: int = 300
     CACHE_MAX_ENTRIES: int = 500
@@ -25,3 +17,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
+
+# ── AES-128-CBC constants ────────────────────────────────────
+# Extracted from Free Fire APK binary (community-verified)
+# Both values are 16 bytes → AES-128
+# Update here if Garena rotates keys on a future OB update
+AES_KEY: bytes = b"Yg&tc%DEuh6%Zc^8"
+AES_IV:  bytes = b"6oyZDr22E3ychjM%"

@@ -6,7 +6,6 @@ The definitive, production-ready Python repository for fetching Free Fire player
 
 - **Multi-Region Support**: All 14 Garena regions (IND, BR, SG, RU, ID, TW, US, VN, TH, ME, PK, CIS, BD, NA).
 - **Secure Pipeline**: AES-CBC encryption and Protobuf v3 binary serialization.
-- **Auto-Auth**: Automatic JWT lifecycle management for Garena MajorLogin.
 - **Async Architecture**: Powered by `aiohttp`, `FastAPI`, and `asyncio`.
 - **Advanced Caching**: TTL-based in-memory cache with LRU eviction and cache stampede protection.
 - **Comprehensive Schema**: 60+ data fields including stats, ranks, guild, pet, and cosmetics.
@@ -30,13 +29,16 @@ pip install -r requirements.txt
 
 ## Configuration
 
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-2. Fill in your Garena guest credentials and AES constants in `.env`.
-   - `GARENA_GUEST_UID` / `GARENA_GUEST_TOKEN`: Extracted from Free Fire guest login.
-   - `AES_KEY` / `AES_IV`: Community-extracted hex keys.
+Copy `.env.example` to `.env`. No credentials needed.
+The only required settings are:
+
+| Variable | Default | Description |
+|---|---|---|
+| OB_VERSION | OB53 | Current game version header |
+| SERVER_PORT | 8080 | FastAPI server port |
+| CACHE_TTL_SECONDS | 300 | Cache duration per UID |
+
+AES encryption constants are pre-configured in `config/settings.py`. No manual setup required.
 
 ## Usage
 
@@ -70,7 +72,7 @@ pytest ff_api/tests
 ```
 
 ## Updating for New Versions
-When Garena releases a new update (e.g., OB54), simply update the `OB_VERSION` in your `.env` file. If AES keys change, update `AES_KEY` and `AES_IV`.
+When Garena releases a new update (e.g., OB54), simply update the `OB_VERSION` in your `.env` file. If AES keys change, update `AES_KEY` and `AES_IV` in `config/settings.py`.
 
 ## License
 MIT License. For educational and research purposes only.

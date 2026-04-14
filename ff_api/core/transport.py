@@ -3,7 +3,6 @@ import aiohttp
 from typing import Any, Dict, Optional
 from ff_api.config.settings import settings
 from ff_api.api.errors import FFError, ErrorCode
-from ff_api.core.auth import jwt_manager
 
 class AsyncTransport:
     def __init__(self):
@@ -15,8 +14,8 @@ class AsyncTransport:
             if self._session is None or self._session.closed:
                 self._session = aiohttp.ClientSession(
                     headers={
-                        "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 12; Pixel 6 Build/SD1A.210817.036)",
-                        "X-Unity-Version": "2021.3.11f1",
+                        "User-Agent": "Dalvik/2.1.0 (Linux; Android 9; SM-G960F Build/PPR1.180610.011)",
+                        "X-Unity-Version": "2018.4.11f1",
                         "Accept-Encoding": "gzip",
                         "Connection": "Keep-Alive"
                     }
@@ -25,22 +24,16 @@ class AsyncTransport:
 
     async def post(self, url: str, data: bytes, retry_count: int = 0) -> bytes:
         session = await self.get_session()
-        token = await jwt_manager.get_token()
 
         headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/x-protobuf",
-            "X-GA-Version": settings.OB_VERSION
+            "Content-Type": "application/octet-stream",
+            "X-Release-Version": settings.OB_VERSION,
         }
 
         try:
             async with session.post(url, data=data, headers=headers, timeout=12) as response:
                 if response.status == 200:
                     return await response.read()
-
-                if response.status == 401 and retry_count < 1:
-                    await jwt_manager.refresh()
-                    return await self.post(url, data, retry_count + 1)
 
                 if response.status == 429:
                     retry_after = int(response.headers.get("Retry-After", 10))
