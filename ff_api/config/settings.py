@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     CACHE_MAX_ENTRIES: int = 500
 
     # API Settings
-    OB_VERSION: str = "OB53"
+    OB_VERSION: str = "OB52"
     SERVER_PORT: int = 8080
     LOG_LEVEL: str = "INFO"
 

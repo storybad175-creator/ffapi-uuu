@@ -59,43 +59,56 @@ async def fetch_player(uid: str, region: str) -> PlayerResponse:
                 error=None
             )
 
-        try:
-            # 3. Build region endpoint
-            base_url = REGION_MAP.get(region)
-            if not base_url:
-                raise FFError(ErrorCode.INVALID_REGION, f"Region {region} is not supported")
+        max_attempts = 10  # Try "again and again" as requested
+        last_error = None
 
-            url = f"{base_url}/api/v1/account"
+        for attempt in range(max_attempts):
+            try:
+                # 3. Build region endpoint
+                base_url = REGION_MAP.get(region)
+                if not base_url:
+                    raise FFError(ErrorCode.INVALID_REGION, f"Region {region} is not supported")
 
-            # 4. Encode Request
-            proto_bytes = proto_handler.encode_request(uid, region)
+                # Adding region parameter to URL for clientbp fallback
+                url = f"{base_url}/api/v1/account?region={region}"
 
-            # 5. Encrypt
-            encrypted_req = crypto.encrypt(proto_bytes)
+                # 4. Encode Request
+                proto_bytes = proto_handler.encode_request(uid, region)
 
-            # 6. POST to Garena
-            encrypted_res = await transport.post(url, encrypted_req)
+                # 5. Encrypt
+                encrypted_req = crypto.encrypt(proto_bytes)
 
-            # 7. Decode Response
-            player_data = decoder.decode(encrypted_res)
+                # 6. POST to Garena
+                encrypted_res = await transport.post(url, encrypted_req)
 
-            # 8. Cache result
-            await cache.set(uid, region, player_data.model_dump())
+                # 7. Decode Response
+                player_data = decoder.decode(encrypted_res)
 
-            return PlayerResponse(
-                metadata=ResponseMetadata(
-                    request_uid=uid,
-                    request_region=region,
-                    fetched_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-                    response_time_ms=int((time.monotonic() - start_time) * 1000),
-                    api_version=settings.OB_VERSION,
-                    cache_hit=False
-                ),
-                data=player_data,
-                error=None
-            )
+                # 8. Cache result
+                await cache.set(uid, region, player_data.model_dump())
 
-        except FFError as e:
-            raise e
-        except Exception as e:
-            raise FFError(ErrorCode.SERVICE_UNAVAILABLE, f"Orchestrator error: {str(e)}")
+                return PlayerResponse(
+                    metadata=ResponseMetadata(
+                        request_uid=uid,
+                        request_region=region,
+                        fetched_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                        response_time_ms=int((time.monotonic() - start_time) * 1000),
+                        api_version=settings.OB_VERSION,
+                        cache_hit=False
+                    ),
+                    data=player_data,
+                    error=None
+                )
+            except (FFError, Exception) as e:
+                last_error = e
+                # Only retry on service/network errors
+                if isinstance(e, FFError) and e.code in [ErrorCode.INVALID_UID, ErrorCode.INVALID_REGION, ErrorCode.PLAYER_NOT_FOUND]:
+                    raise e
+
+                await asyncio.sleep(2) # Wait between attempts
+                continue
+
+        # If we reach here, all attempts failed
+        if isinstance(last_error, FFError):
+            raise last_error
+        raise FFError(ErrorCode.SERVICE_UNAVAILABLE, f"Orchestrator error after {max_attempts} attempts: {str(last_error)}")

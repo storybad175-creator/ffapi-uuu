@@ -1,17 +1,18 @@
-# REGION_MAP: All 14 regions supported by Garena Free Fire (OB53)
+# REGION_MAP: All 14 regions supported by Garena Free Fire (OB52)
+# Using direct clientbp fallback since regional DNS is unstable
 REGION_MAP = {
-    "IND": "https://ind.api.ggblueshark.com",
-    "BR": "https://br.api.ggblueshark.com",
-    "SG": "https://sg.api.ggblueshark.com",
-    "RU": "https://ru.api.ggblueshark.com",
-    "ID": "https://id.api.ggblueshark.com",
-    "TW": "https://tw.api.ggblueshark.com",
-    "US": "https://us.api.ggblueshark.com",
-    "VN": "https://vn.api.ggblueshark.com",
-    "TH": "https://th.api.ggblueshark.com",
-    "ME": "https://me.api.ggblueshark.com",
-    "PK": "https://pk.api.ggblueshark.com",
-    "CIS": "https://cis.api.ggblueshark.com",
-    "BD": "https://bd.api.ggblueshark.com",
-    "NA": "https://na.api.ggblueshark.com",
+    "IND": "https://clientbp.ggblueshark.com",
+    "BR": "https://clientbp.ggblueshark.com",
+    "SG": "https://clientbp.ggblueshark.com",
+    "RU": "https://clientbp.ggblueshark.com",
+    "ID": "https://clientbp.ggblueshark.com",
+    "TW": "https://clientbp.ggblueshark.com",
+    "US": "https://clientbp.ggblueshark.com",
+    "VN": "https://clientbp.ggblueshark.com",
+    "TH": "https://clientbp.ggblueshark.com",
+    "ME": "https://clientbp.ggblueshark.com",
+    "PK": "https://clientbp.ggblueshark.com",
+    "CIS": "https://clientbp.ggblueshark.com",
+    "BD": "https://clientbp.ggblueshark.com",
+    "NA": "https://clientbp.ggblueshark.com",
 }
