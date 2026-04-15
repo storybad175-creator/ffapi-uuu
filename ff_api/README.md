@@ -40,6 +40,8 @@ The only required settings are:
 
 AES encryption constants are pre-configured in `config/settings.py`. No manual setup required.
 
+For a detailed breakdown of system requirements, request limits, and available data fields, please refer to the **[Comprehensive Usage Guide (GUIDE.md)](GUIDE.md)**.
+
 ## Usage
 
 ### Starting the API Server
