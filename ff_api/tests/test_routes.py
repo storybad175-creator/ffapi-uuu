@@ -37,7 +37,7 @@ def test_player_endpoint_valid(mock_fetch):
             request_region="IND",
             fetched_at=datetime.now().isoformat(),
             response_time_ms=100,
-            api_version="OB53",
+            api_version="OB52",
             cache_hit=False
         ),
         data=None, # Simplified

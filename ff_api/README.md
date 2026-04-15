@@ -34,7 +34,7 @@ The only required settings are:
 
 | Variable | Default | Description |
 |---|---|---|
-| OB_VERSION | OB53 | Current game version header |
+| OB_VERSION | OB52 | Current game version header |
 | SERVER_PORT | 8080 | FastAPI server port |
 | CACHE_TTL_SECONDS | 300 | Cache duration per UID |
 

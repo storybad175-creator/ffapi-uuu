@@ -9,7 +9,7 @@ def mock_settings():
     with patch("ff_api.config.settings.settings") as mocked:
         mocked.CACHE_TTL_SECONDS = 300
         mocked.CACHE_MAX_ENTRIES = 10
-        mocked.OB_VERSION = "OB53"
+        mocked.OB_VERSION = "OB52"
         yield mocked
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def mock_player_data():
             "signature": "CHANDRU HERE...!!!",
             "honor_score": 100,
             "total_likes": 5817,
-            "ob_version": "OB53",
+            "ob_version": "OB52",
             "created_at_epoch": 1641513600,
             "created_at": "2022-01-07T00:00:00Z",
             "last_login_epoch": 1735862400,
