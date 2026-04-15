@@ -31,26 +31,27 @@ class ProtobufHandler:
                 return result, pos
             shift += 7
 
-    def encode_request(self, uid: str, region: str) -> bytes:
-        def encode_field(tag: int, wire_type: int, value: Union[str, int, bytes]) -> bytes:
-            header = self.encode_varint((tag << 3) | wire_type)
-            if wire_type == WIRE_LENGTH_DELIMITED:
-                if isinstance(value, str):
-                    encoded_val = value.encode('utf-8')
-                else:
-                    encoded_val = value
-                return header + self.encode_varint(len(encoded_val)) + encoded_val
-            elif wire_type == WIRE_VARINT:
-                return header + self.encode_varint(value)
+    def encode_request(self, uid: str, region: str, structure: str = "standard") -> bytes:
+        def f(tag, wire, val):
+            header = self.encode_varint((tag << 3) | wire)
+            if wire == 2:
+                if isinstance(val, str): val = val.encode()
+                return header + self.encode_varint(len(val)) + val
+            if wire == 0:
+                return header + self.encode_varint(int(val))
             return b""
 
         from ff_api.config.settings import settings
 
-        res = b""
-        res += encode_field(1, WIRE_LENGTH_DELIMITED, uid)
-        res += encode_field(2, WIRE_LENGTH_DELIMITED, region)
-        res += encode_field(3, WIRE_LENGTH_DELIMITED, settings.OB_VERSION)
-        return res
+        # Optimized for OB52 discovery
+        if structure == "nested":
+            inner = f(1, 2, uid) + f(2, 2, region)
+            return f(1, 2, inner)
+        elif structure == "integer":
+            return f(1, 0, uid) + f(2, 2, region)
+        else: # standard
+            # Some versions use tag 1 for region and tag 2 for uid
+            return f(1, 2, uid) + f(2, 2, region)
 
     def decode_response(self, data: bytes, map_key: str = "response") -> Dict[str, Any]:
         result = {}
@@ -73,7 +74,6 @@ class ProtobufHandler:
                     val = data[pos:pos+length]
                     pos += length
 
-                    # Check if this field name should be treated as a nested message
                     target_map_key = nested_mapping.get(field_name)
                     if target_map_key and target_map_key in PROTO_FIELD_MAP:
                         result[field_name] = self.decode_response(val, target_map_key)
