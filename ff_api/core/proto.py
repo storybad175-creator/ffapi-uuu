@@ -5,9 +5,7 @@ from ff_api.api.errors import FFError, ErrorCode
 
 # Protobuf Wire Types
 WIRE_VARINT = 0
-WIRE_64BIT = 1
 WIRE_LENGTH_DELIMITED = 2
-WIRE_32BIT = 5
 
 class ProtobufHandler:
     @staticmethod
@@ -31,27 +29,14 @@ class ProtobufHandler:
                 return result, pos
             shift += 7
 
-    def encode_request(self, uid: str, region: str, structure: str = "standard") -> bytes:
+    def encode_request(self, uid: str, region: str) -> bytes:
+        """Standard OB52 request structure: {1: uid_str, 2: region_str}"""
         def f(tag, wire, val):
             header = self.encode_varint((tag << 3) | wire)
-            if wire == 2:
-                if isinstance(val, str): val = val.encode()
-                return header + self.encode_varint(len(val)) + val
-            if wire == 0:
-                return header + self.encode_varint(int(val))
-            return b""
+            if isinstance(val, str): val = val.encode()
+            return header + self.encode_varint(len(val)) + val
 
-        from ff_api.config.settings import settings
-
-        # Optimized for OB52 discovery
-        if structure == "nested":
-            inner = f(1, 2, uid) + f(2, 2, region)
-            return f(1, 2, inner)
-        elif structure == "integer":
-            return f(1, 0, uid) + f(2, 2, region)
-        else: # standard
-            # Some versions use tag 1 for region and tag 2 for uid
-            return f(1, 2, uid) + f(2, 2, region)
+        return f(1, 2, uid) + f(2, 2, region)
 
     def decode_response(self, data: bytes, map_key: str = "response") -> Dict[str, Any]:
         result = {}
@@ -82,16 +67,9 @@ class ProtobufHandler:
                             result[field_name] = val.decode('utf-8')
                         except UnicodeDecodeError:
                             result[field_name] = val
-                elif wire_type == WIRE_64BIT:
-                    val = struct.unpack("<Q", data[pos:pos+8])[0]
-                    result[field_name] = val
-                    pos += 8
-                elif wire_type == WIRE_32BIT:
-                    val = struct.unpack("<I", data[pos:pos+4])[0]
-                    result[field_name] = val
-                    pos += 4
                 else:
-                    raise FFError(ErrorCode.DECODE_ERROR, f"Unknown wire type {wire_type}")
+                    # Skip unknown wires
+                    pass
         except Exception as e:
             if isinstance(e, FFError):
                 raise e

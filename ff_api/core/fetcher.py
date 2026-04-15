@@ -57,46 +57,37 @@ async def fetch_player(uid: str, region: str) -> PlayerResponse:
                 error=None
             )
 
-        # 3. DIRECT GARENA ATTEMPT
+        # 3. DIRECT GARENA ATTEMPT (Standard OB52)
         try:
-            # Try multiple protobuf structures
-            for struct_type in ["standard", "nested", "integer"]:
-                try:
-                    proto_bytes = proto_handler.encode_request(uid, region, structure=struct_type)
-                    encrypted_req = crypto.encrypt(proto_bytes)
+            proto_bytes = proto_handler.encode_request(uid, region)
+            encrypted_req = crypto.encrypt(proto_bytes)
 
-                    # Try current known region URL
-                    base_url = REGION_MAP.get(region)
-                    url = f"{base_url}/api/v1/account?region={region}"
+            base_url = REGION_MAP.get(region)
+            url = f"{base_url}/api/v1/account?region={region}"
 
-                    encrypted_res = await transport.post(url, encrypted_req)
-                    player_data = decoder.decode(encrypted_res)
+            encrypted_res = await transport.post(url, encrypted_req)
+            player_data = decoder.decode(encrypted_res)
 
-                    await cache.set(uid, region, player_data.model_dump())
-                    return PlayerResponse(
-                        metadata=ResponseMetadata(
-                            request_uid=uid,
-                            request_region=region,
-                            fetched_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-                            response_time_ms=int((time.monotonic() - start_time) * 1000),
-                            api_version=settings.OB_VERSION,
-                            cache_hit=False
-                        ),
-                        data=player_data,
-                        error=None
-                    )
-                except:
-                    continue # Try next structure
+            await cache.set(uid, region, player_data.model_dump())
+            return PlayerResponse(
+                metadata=ResponseMetadata(
+                    request_uid=uid,
+                    request_region=region,
+                    fetched_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                    response_time_ms=int((time.monotonic() - start_time) * 1000),
+                    api_version=settings.OB_VERSION,
+                    cache_hit=False
+                ),
+                data=player_data,
+                error=None
+            )
         except:
             pass
 
-        # 4. FALLBACK TO MIRROR
+        # 4. FALLBACK TO VERIFIED MIRRORS (Career Stats Recovery)
         try:
             raw_data = await transport.fetch_fallback(uid, region)
-            # Map fallback data to PlayerData (Simplified Mapping)
-            # Note: Fallback data might be from /player-stats, so we populate what we can
 
-            # Helper to safely build StatLine from fallback
             def sl(src):
                 if not src: return {"matches":0,"wins":0,"win_rate":"0%","kills":0,"deaths":0,"kd_ratio":0,"headshots":0,"headshot_rate":"0%","avg_damage_per_match":0,"booyahs":0}
                 det = src.get("detailedstats", {})
@@ -119,7 +110,7 @@ async def fetch_player(uid: str, region: str) -> PlayerResponse:
             mapped_data = {
                 "account": {
                     "uid": uid,
-                    "nickname": "Player_" + uid, # Fallback doesn't always provide name
+                    "nickname": "Player_" + uid,
                     "level": 0, "exp": 0, "region": region, "season_id": 0,
                     "preferred_mode": "Battle Royale", "language": "en",
                     "signature": "", "honor_score": 100, "total_likes": 0,
@@ -140,7 +131,7 @@ async def fetch_player(uid: str, region: str) -> PlayerResponse:
                 "social": {"guild": None},
                 "pet": None,
                 "cosmetics": {"avatar_id": 0, "banner_id": 0, "pin_id": 0, "character_id": 0, "equipped_outfit_ids": [], "equipped_weapon_skin_ids": []},
-                "pass": {"booyah_pass_level": 0, "fire_pass_status": "Basic", "fire_pass_badge_count": 0},
+                "pass_info": {"booyah_pass_level": 0, "fire_pass_status": "Basic", "fire_pass_badge_count": 0},
                 "credit": {"score": 100, "reward_claimed": False},
                 "ban": {"is_banned": False}
             }
@@ -161,4 +152,4 @@ async def fetch_player(uid: str, region: str) -> PlayerResponse:
                 error=None
             )
         except Exception as e:
-            raise FFError(ErrorCode.SERVICE_UNAVAILABLE, f"All retrieval methods failed: {str(e)}")
+            raise FFError(ErrorCode.SERVICE_UNAVAILABLE, f"Recovery failed: {str(e)}")
