@@ -29,15 +29,39 @@ class ProtobufHandler:
                 return result, pos
             shift += 7
 
-    def encode_request(self, uid: str, region: str) -> bytes:
-        """Standard OB52 request structure: {1: uid_str, 2: region_str}"""
-        def f(tag, wire, val):
-            header = self.encode_varint((tag << 3) | wire)
-            if isinstance(val, str): val = val.encode()
-            return header + self.encode_varint(len(val)) + val
+    def encode_request(self, uid: str, region: str, variant: str = "standard", cmd_id: int = 1001) -> bytes:
+        """OB52 multi-variant request encoder including nested command structures."""
+        def f_str(tag, val):
+            header = self.encode_varint((tag << 3) | WIRE_LENGTH_DELIMITED)
+            v = val.encode() if isinstance(val, str) else val
+            return header + self.encode_varint(len(v)) + v
 
-        # OB52 direct strategy: UID then Region
-        return f(1, 2, uid) + f(2, 2, region)
+        def f_int(tag, val):
+            header = self.encode_varint((tag << 3) | WIRE_VARINT)
+            return header + self.encode_varint(int(val))
+
+        def f_bool(tag, val):
+            header = self.encode_varint((tag << 3) | WIRE_VARINT)
+            return header + (b'\x01' if val else b'\x00')
+
+        # Payload construction
+        if variant == "production":
+            # GetPlayerPersonalShow structure
+            # 1: accountId, 2: callSignSrc, 3: needGalleryInfo, 4: needBlacklist, 5: needSparkInfo
+            return f_int(1, uid) + f_int(2, 7) + f_bool(3, False) + f_bool(4, False) + f_bool(5, False)
+
+        if variant == "legacy":
+            payload = f_int(1, uid) + f_str(2, region)
+        elif variant == "extended":
+            payload = f_str(1, uid) + f_str(2, region) + f_str(3, "OB52")
+        else:
+            payload = f_str(1, uid) + f_str(2, region)
+
+        if variant == "nested":
+            # Nested: {1: cmd_id, 2: {payload}}
+            return f_int(1, cmd_id) + f_str(2, payload)
+
+        return payload
 
     def decode_response(self, data: bytes, map_key: str = "response") -> Dict[str, Any]:
         result = {}

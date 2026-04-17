@@ -50,6 +50,7 @@ async def run_batch(file_path: str, region: str):
 def main():
     parser = argparse.ArgumentParser(description="Free Fire API CLI")
     parser.add_argument("--uid", type=str, help="Player UID")
+    parser.add_argument("--deep", action="store_true", help="Aggressive scan across all regions")
     parser.add_argument("--region", type=str, help="Region code (IND, BR, etc.)")
     parser.add_argument("--batch", type=str, help="Path to file containing UIDs (one per line)")
     parser.add_argument("--format", choices=["pretty", "compact"], default="pretty", help="Output format")
@@ -72,7 +73,8 @@ def main():
             sys.exit(1)
         asyncio.run(run_batch(args.batch, args.region))
     elif args.uid:
-        asyncio.run(run_fetch(args.uid, args.region, compact=(args.format == "compact")))
+        region = None if args.deep else args.region
+        asyncio.run(run_fetch(args.uid, region, compact=(args.format == "compact")))
     else:
         parser.print_help()
 

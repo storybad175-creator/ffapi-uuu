@@ -8,11 +8,17 @@ class Settings(BaseSettings):
 
     # API Settings
     OB_VERSION: str = "OB52"
+    RELEASE_VERSION: str = "1.103.1"
+    UNITY_VERSION: str = "2022.3.47f1"
     SERVER_PORT: int = 8080
     LOG_LEVEL: str = "INFO"
 
     # Rate Limiting
     RATE_LIMIT_RPM: int = 30
+
+    # Garena Guest Credentials (for JWT extraction)
+    GARENA_GUEST_UID: str = "100067" # Default Client ID as fallback
+    GARENA_GUEST_TOKEN: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

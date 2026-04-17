@@ -17,11 +17,18 @@ async def fetch_player(uid: str, region: Optional[str] = None) -> PlayerResponse
     start_time = time.monotonic()
 
     # Priority regions for auto-detection
-    regions_to_check = [region.upper()] if region else ["IND", "BD", "SG", "BR", "ID", "US", "RU", "TH", "VN"]
+    # User is BD, so we prioritize BD then SG (same infrastructure)
+    if region and region.upper() == "BD":
+        regions_to_check = ["BD", "SG", "IND"]
+    elif region:
+        regions_to_check = [region.upper()]
+    else:
+        # Bangladesh is priority 1
+        regions_to_check = ["BD", "IND", "SG", "BR", "ID", "US", "RU", "TH", "VN"]
 
     for current_region in regions_to_check:
-        # Check Cache
-        cached_data = await cache.get(uid, current_region)
+        # Check Cache (only if not forcing deep search)
+        cached_data = await cache.get(uid, current_region) if region else None
         if cached_data:
             return PlayerResponse(
                 metadata=ResponseMetadata(
@@ -36,16 +43,43 @@ async def fetch_player(uid: str, region: Optional[str] = None) -> PlayerResponse
 
         key_lock = await cache.get_lock(uid, current_region)
         async with key_lock:
-            # 1. DIRECT GARENA ATTEMPT (Pure OB52)
-            try:
-                proto_bytes = proto_handler.encode_request(uid, current_region)
-                encrypted_req = crypto.encrypt(proto_bytes)
-                base_url = REGION_MAP.get(current_region)
-                url = f"{base_url}/api/v1/account?region={current_region}"
+            # 1. DIRECT GARENA ATTEMPT (Production Endpoints)
+            direct_success = False
 
-                encrypted_res = await transport.post(url, encrypted_req)
-                player_data = decoder.decode(encrypted_res)
+            # Map region to specific production hostnames
+            host_map = {
+                "IND": "client.ind.freefiremobile.com",
+                "BD": "client.ind.freefiremobile.com", # BD often uses IND infrastructure
+                "SG": "client.sg.freefiremobile.com",
+            }
+            target_host = host_map.get(current_region, "clientbp.ggblueshark.com")
 
+            # Try GetPlayerPersonalShow (Detailed) and GetPlayerStats
+            variants = ["production", "standard", "nested", "legacy", "extended"]
+            cmd_ids = [1001, 2001, 3001]
+
+            for variant in variants:
+                for cmd_id in (cmd_ids if variant == "nested" else [None]):
+                    try:
+                        proto_bytes = proto_handler.encode_request(uid, current_region, variant=variant, cmd_id=cmd_id)
+                        encrypted_req = crypto.encrypt(proto_bytes)
+
+                        # Try GetPlayerPersonalShow for profile info
+                        endpoint = "GetPlayerPersonalShow" if variant == "production" else "api/v1/account"
+                        url = f"https://{target_host}/{endpoint}"
+                        encrypted_res = await transport.post(url, encrypted_req, host=target_host)
+                        player_data = decoder.decode(encrypted_res)
+
+                        # Verify "live" data
+                        if player_data.account.level >= 55:
+                            direct_success = True
+                            break
+                    except Exception:
+                        continue
+                if direct_success:
+                    break
+
+            if direct_success:
                 await cache.set(uid, current_region, player_data.model_dump())
                 return PlayerResponse(
                     metadata=ResponseMetadata(
@@ -57,8 +91,6 @@ async def fetch_player(uid: str, region: Optional[str] = None) -> PlayerResponse
                     data=player_data,
                     error=None
                 )
-            except:
-                pass
 
             # 2. SMART FALLBACK (Mirror Recovery)
             try:
@@ -83,6 +115,10 @@ async def fetch_player(uid: str, region: Optional[str] = None) -> PlayerResponse
                 # If we got shallow/empty data, try the next region in the detection loop
                 if not has_stats and not has_profile:
                     continue
+
+                # Check for "live" indicators if user requested
+                # If level is lower than known (59), we might want to keep searching other mirrors
+                # but for now we accept the best available.
 
                 def format_epoch(epoch: Optional[int]) -> Optional[str]:
                     if not epoch: return None

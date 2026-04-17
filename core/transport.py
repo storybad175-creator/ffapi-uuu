@@ -4,6 +4,7 @@ import random
 from typing import Any, Dict, Optional, List
 from config.settings import settings
 from api.errors import FFError, ErrorCode
+from core.auth import jwt_manager
 
 class AsyncTransport:
     def __init__(self):
@@ -17,22 +18,38 @@ class AsyncTransport:
                 self._session = aiohttp.ClientSession()
             return self._session
 
-    async def post(self, url: str, data: bytes, retry_count: int = 0) -> bytes:
+    async def post(self, url: str, data: bytes, retry_count: int = 0, host: Optional[str] = None) -> bytes:
         session = await self.get_session()
+        token = await jwt_manager.get_token()
+
+        # Production headers for OB53
         headers = {
-            "Content-Type": "application/x-protobuf",
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 11) GarenaFreeFire/1.103.1",
-            "X-GA-Version": settings.OB_VERSION,
-            "Host": "clientbp.ggblueshark.com",
+            "User-Agent": "UnityPlayer/2022.3.47f1 (UnityWebRequest/1.0, libcurl/8.5.0-DEV)",
+            "Accept": "*/*",
+            "Accept-Encoding": "deflate, gzip",
+            "Authorization": f"Bearer {token}",
+            "X-GA": "v1 1",
+            "ReleaseVersion": settings.RELEASE_VERSION,
+            "X-Unity-Version": settings.UNITY_VERSION,
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Host": host or "clientbp.ggblueshark.com",
             "Connection": "close"
         }
 
+        # IP rotation for high availability
         ip = self._garena_ips[retry_count % len(self._garena_ips)]
-        region = url.split("region=")[-1] if "region=" in url else "IND"
-        current_url = f"https://{ip}/api/v1/account?region={region}"
+
+        # Build direct URL
+        if "api/v1/account" in url:
+            region = url.split("region=")[-1] if "region=" in url else "IND"
+            target_url = f"https://{ip}/api/v1/account?region={region}"
+        else:
+            # For specific endpoints like GetPlayerPersonalShow
+            endpoint = url.split("/")[-1]
+            target_url = f"https://{ip}/{endpoint}"
 
         try:
-            async with session.post(current_url, data=data, headers=headers, timeout=5, ssl=False) as response:
+            async with session.post(target_url, data=data, headers=headers, timeout=5, ssl=False) as response:
                 if response.status == 200:
                     return await response.read()
                 if retry_count < 3:
